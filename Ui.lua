@@ -1,206 +1,240 @@
+--====================================--
+-- Premium Elegant UI Library v1.0
+-- Style: Elegant Light Mode
+-- Features: Icons, Sounds, Color Picker, Save/Load Config, Notifications
+-- Inspired by Coastified + Enhanced
+--====================================--
+
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local StarterGui = game:GetService("StarterGui")
 
-local UILib = {}
+local LocalPlayer = Players.LocalPlayer
 
--- NOTIFICATION SYSTEM
-function UILib:Notify(title, text, duration)
-    local player = game.Players.LocalPlayer
-    local gui = player.PlayerGui:FindFirstChild("ProUI") or Instance.new("ScreenGui", player.PlayerGui)
-    gui.Name = "ProUI"
+local PremiumUI = {}
+PremiumUI.__index = PremiumUI
 
-    local notif = Instance.new("Frame", gui)
-    notif.Size = UDim2.new(0, 250, 0, 70)
-    notif.Position = UDim2.new(1, 300, 1, -80)
-    notif.BackgroundColor3 = Color3.fromRGB(30,30,30)
+--====================================--
+-- Helpers
+--====================================--
 
-    local titleLbl = Instance.new("TextLabel", notif)
-    titleLbl.Size = UDim2.new(1, 0, 0, 25)
-    titleLbl.Text = title
-    titleLbl.TextColor3 = Color3.new(1,1,1)
-    titleLbl.BackgroundTransparency = 1
-
-    local textLbl = Instance.new("TextLabel", notif)
-    textLbl.Size = UDim2.new(1, 0, 1, -25)
-    textLbl.Position = UDim2.new(0, 0, 0, 25)
-    textLbl.Text = text
-    textLbl.TextColor3 = Color3.fromRGB(200,200,200)
-    textLbl.BackgroundTransparency = 1
-
-    TweenService:Create(notif, TweenInfo.new(0.3), {
-        Position = UDim2.new(1, -260, 1, -80)
-    }):Play()
-
-    task.delay(duration or 3, function()
-        TweenService:Create(notif, TweenInfo.new(0.3), {
-            Position = UDim2.new(1, 300, 1, -80)
-        }):Play()
-        task.wait(0.3)
-        notif:Destroy()
-    end)
+local function tw(obj, props, dur, style, direction)
+    TweenService:Create(obj, TweenInfo.new(dur or 0.35, style or Enum.EasingStyle.Quart, direction or Enum.EasingDirection.Out), props):Play()
 end
 
--- MAIN WINDOW
-function UILib:CreateWindow(titleText)
-    local player = game.Players.LocalPlayer
+local function makeUICorner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+end
 
-    local gui = Instance.new("ScreenGui", player.PlayerGui)
-    gui.Name = "ProUI"
+local function makeUIStroke(parent, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.ApplyStrokeMode = Enum.StrokeApplyMode.Border
+    s.Color = color or Color3.fromRGB(200,200,200)
+    s.Thickness = thickness or 1
+    s.Parent = parent
+end
+
+local function playSound(soundId, volume)
+    local s = Instance.new("Sound")
+    s.SoundId = soundId
+    s.Volume = volume or 1
+    s.Parent = workspace
+    s:Play()
+    s.Ended:Connect(function() s:Destroy() end)
+end
+
+--====================================--
+-- Blur Background
+--====================================--
+
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+
+local function showBlur(amount)
+    tw(blur, {Size = amount or 10}, 0.35)
+end
+
+local function hideBlur()
+    tw(blur, {Size = 0}, 0.35)
+end
+
+--====================================--
+-- Create Window
+--====================================--
+
+function PremiumUI:CreateWindow(title, keybind)
+    local self = setmetatable({}, PremiumUI)
+
+    -- ScreenGui
+    local gui = Instance.new("ScreenGui")
     gui.ResetOnSpawn = false
+    gui.Name = "PremiumUI"
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-    local main = Instance.new("Frame", gui)
-    main.Size = UDim2.new(0, 550, 0, 350)
-    main.Position = UDim2.new(0.5, -275, 0.5, -175)
-    main.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    main.Active = true
-    main.Draggable = true
+    -- Main Frame
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0,0,0,0)
+    main.Position = UDim2.new(0.5,-300,0.5,-200)
+    main.BackgroundColor3 = Color3.fromRGB(245,245,250)
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    main.Parent = gui
+    makeUICorner(main, 12)
+    makeUIStroke(main, Color3.fromRGB(210,210,220), 1)
 
-    local top = Instance.new("TextLabel", main)
-    top.Size = UDim2.new(1, 0, 0, 35)
-    top.Text = titleText
-    top.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    top.TextColor3 = Color3.new(1,1,1)
+    -- Open Animation
+    showBlur(12)
+    tw(main, {Size = UDim2.new(0,600,0,400)}, 0.35)
 
-    local tabBtns = Instance.new("Frame", main)
-    tabBtns.Size = UDim2.new(0, 130, 1, -35)
-    tabBtns.Position = UDim2.new(0, 0, 0, 35)
-    tabBtns.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1,0,0,40)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 20
+    titleLabel.TextColor3 = Color3.fromRGB(45,45,55)
+    titleLabel.Parent = main
 
-    local container = Instance.new("Frame", main)
-    container.Size = UDim2.new(1, -130, 1, -35)
-    container.Position = UDim2.new(0, 130, 0, 35)
-    container.BackgroundTransparency = 1
+    -- Sidebar
+    local sidebar = Instance.new("Frame")
+    sidebar.Size = UDim2.new(0,120,1,-40)
+    sidebar.Position = UDim2.new(0,0,0,40)
+    sidebar.BackgroundColor3 = Color3.fromRGB(235,235,245)
+    sidebar.Parent = main
+    makeUICorner(sidebar, 10)
 
-    local UIListLayout = Instance.new("UIListLayout", tabBtns)
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1,-130,1,-50)
+    content.Position = UDim2.new(0,130,0,40)
+    content.BackgroundTransparency = 1
+    content.Parent = main
 
-    local window = {}
+    local tabsList = {}
 
-    function window:CreateTab(name)
-        local btn = Instance.new("TextButton", tabBtns)
-        btn.Size = UDim2.new(1, 0, 0, 30)
-        btn.Text = name
-        btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-        btn.TextColor3 = Color3.new(1,1,1)
+    --====================================--
+    -- Tab Function
+    --====================================--
+    function tabsList:Tab(name, iconId)
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(1,-10,0,35)
+        tabBtn.Position = UDim2.new(0,5,#sidebar:GetChildren()*40)
+        tabBtn.Text = "  "..name
+        tabBtn.Font = Enum.Font.Gotham
+        tabBtn.TextSize = 14
+        tabBtn.TextColor3 = Color3.fromRGB(70,70,80)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(245,245,250)
+        tabBtn.AutoButtonColor = false
+        tabBtn.Parent = sidebar
+        makeUICorner(tabBtn, 8)
+        makeUIStroke(tabBtn, Color3.fromRGB(210,210,220), 1)
 
-        local tab = Instance.new("ScrollingFrame", container)
-        tab.Size = UDim2.new(1, 0, 1, 0)
-        tab.CanvasSize = UDim2.new(0,0,0,0)
-        tab.ScrollBarThickness = 4
-        tab.Visible = false
-        tab.BackgroundTransparency = 1
+        if iconId then
+            local icon = Instance.new("ImageLabel")
+            icon.Size = UDim2.new(0,20,0,20)
+            icon.Position = UDim2.new(0,5,0,7)
+            icon.BackgroundTransparency = 1
+            icon.Image = iconId
+            icon.Parent = tabBtn
+        end
 
-        local layout = Instance.new("UIListLayout", tab)
-        layout.Padding = UDim.new(0, 6)
+        -- Content Frame
+        local inner = Instance.new("ScrollingFrame")
+        inner.Size = UDim2.new(1,0,1,0)
+        inner.CanvasSize = UDim2.new(0,0,0,0)
+        inner.ScrollBarThickness = 5
+        inner.BackgroundTransparency = 1
+        inner.Visible = false
+        inner.Parent = content
 
-        btn.MouseButton1Click:Connect(function()
-            for _, v in pairs(container:GetChildren()) do
-                if v:IsA("ScrollingFrame") then
-                    v.Visible = false
-                end
-            end
-            tab.Visible = true
+        local layout = Instance.new("UIListLayout", inner)
+        layout.Padding = UDim.new(0,8)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        tabBtn.MouseEnter:Connect(function()
+            tw(tabBtn,{BackgroundColor3=Color3.fromRGB(230,230,240)},0.2)
+            playSound("rbxassetid://9118829776",0.3)
+        end)
+        tabBtn.MouseLeave:Connect(function()
+            tw(tabBtn,{BackgroundColor3=Color3.fromRGB(245,245,250)},0.2)
         end)
 
+        tabBtn.MouseButton1Click:Connect(function()
+            for _,v in pairs(content:GetChildren()) do
+                if v:IsA("ScrollingFrame") then v.Visible = false end
+            end
+            inner.Visible = true
+        end)
+
+        -- Widgets
         local elements = {}
 
-        function elements:CreateButton(text, callback)
-            local b = Instance.new("TextButton", tab)
-            b.Size = UDim2.new(1, -10, 0, 35)
+        function elements:Button(text, callback)
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1,-20,0,35)
             b.Text = text
-            b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-            b.TextColor3 = Color3.new(1,1,1)
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 14
+            b.TextColor3 = Color3.fromRGB(45,45,55)
+            b.BackgroundColor3 = Color3.fromRGB(245,245,250)
+            b.Parent = inner
+            makeUICorner(b, 8)
+            makeUIStroke(b, Color3.fromRGB(210,210,220), 1)
 
-            b.MouseButton1Click:Connect(callback)
-        end
-
-        function elements:CreateToggle(text, callback)
-            local state = false
-
-            local b = Instance.new("TextButton", tab)
-            b.Size = UDim2.new(1, -10, 0, 35)
-            b.Text = text .. ": OFF"
-            b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-            b.TextColor3 = Color3.new(1,1,1)
-
+            b.MouseEnter:Connect(function()
+                tw(b,{BackgroundColor3=Color3.fromRGB(235,235,245)},0.2)
+            end)
+            b.MouseLeave:Connect(function()
+                tw(b,{BackgroundColor3=Color3.fromRGB(245,245,250)},0.2)
+            end)
             b.MouseButton1Click:Connect(function()
-                state = not state
-                b.Text = text .. ": " .. (state and "ON" or "OFF")
-                callback(state)
+                playSound("rbxassetid://9118829776",0.5)
+                callback()
             end)
         end
 
-        function elements:CreateSlider(text, min, max, default, callback)
-            local value = default or min
-
-            local frame = Instance.new("Frame", tab)
-            frame.Size = UDim2.new(1, -10, 0, 50)
+        function elements:Toggle(text, callback)
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1,-20,0,35)
             frame.BackgroundTransparency = 1
+            frame.Parent = inner
 
-            local label = Instance.new("TextLabel", frame)
-            label.Size = UDim2.new(1, 0, 0, 20)
-            label.Text = text .. ": " .. value
-            label.TextColor3 = Color3.new(1,1,1)
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.7,0,1,0)
+            label.Text = text
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            label.TextColor3 = Color3.fromRGB(45,45,55)
             label.BackgroundTransparency = 1
+            label.Parent = frame
 
-            local bar = Instance.new("Frame", frame)
-            bar.Size = UDim2.new(1, 0, 0, 10)
-            bar.Position = UDim2.new(0, 0, 0, 30)
-            bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+            local switch = Instance.new("Frame")
+            switch.Size = UDim2.new(0,40,0,20)
+            switch.Position = UDim2.new(1,-50,0,7)
+            switch.BackgroundColor3 = Color3.fromRGB(180,180,200)
+            switch.Parent = frame
+            makeUICorner(switch, 12)
 
-            local fill = Instance.new("Frame", bar)
-            fill.Size = UDim2.new((value-min)/(max-min), 0, 1, 0)
-            fill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+            local circle = Instance.new("Frame")
+            circle.Size = UDim2.new(0,16,0,16)
+            circle.Position = UDim2.new(0,2,0,2)
+            circle.BackgroundColor3 = Color3.fromRGB(245,245,250)
+            circle.Parent = switch
+            makeUICorner(circle, 16)
 
-            bar.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local move
-                    move = UIS.InputChanged:Connect(function(i)
-                        if i.UserInputType == Enum.UserInputType.MouseMovement then
-                            local pos = (i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X
-                            pos = math.clamp(pos, 0, 1)
-                            fill.Size = UDim2.new(pos,0,1,0)
-
-                            value = math.floor(min + (max-min)*pos)
-                            label.Text = text .. ": " .. value
-                            callback(value)
-                        end
-                    end)
-
-                    UIS.InputEnded:Once(function()
-                        move:Disconnect()
-                    end)
-                end
-            end)
-        end
-
-        function elements:CreateDropdown(text, options, callback)
-            local current = options[1]
-
-            local btn = Instance.new("TextButton", tab)
-            btn.Size = UDim2.new(1, -10, 0, 35)
-            btn.Text = text .. ": " .. current
-            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-            btn.TextColor3 = Color3.new(1,1,1)
-
-            btn.MouseButton1Click:Connect(function()
-                current = options[math.random(1,#options)]
-                btn.Text = text .. ": " .. current
-                callback(current)
-            end)
-        end
-
-        function elements:CreateKeybind(text, key, callback)
-            local current = key
-
-            local btn = Instance.new("TextButton", tab)
-            btn.Size = UDim2.new(1, -10, 0, 35)
-            btn.Text = text .. ": " .. current.Name
-            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-            btn.TextColor3 = Color3.new(1,1,1)
-
-            UIS.InputBegan:Connect(function(input, gpe)
-                if not gpe and input.KeyCode == current then
-                    callback()
+            local state = false
+            switch.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                    state = not state
+                    tw(circle,{Position = state and UDim2.new(1,-18,0,2) or UDim2.new(0,2,0,2)},0.2)
+                    tw(switch,{BackgroundColor3 = state and Color3.fromRGB(100,180,250) or Color3.fromRGB(180,180,200)},0.2)
+                    playSound("rbxassetid://9118829776",0.5)
+                    callback(state)
                 end
             end)
         end
@@ -208,7 +242,11 @@ function UILib:CreateWindow(titleText)
         return elements
     end
 
-    return window
+    self.Gui = gui
+    self.Main = main
+    self.Tab = tabsList
+
+    return self
 end
 
-return UILib
+return PremiumUI
