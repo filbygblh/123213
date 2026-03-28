@@ -32,7 +32,8 @@ end
 
 local function makeUIStroke(parent, color, thickness)
     local s = Instance.new("UIStroke")
-    s.ApplyStrokeMode = Enum.StrokeApplyMode.Border
+    -- fix: use the correct enum
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     s.Color = color or Color3.fromRGB(200,200,200)
     s.Thickness = thickness or 1
     s.Parent = parent
